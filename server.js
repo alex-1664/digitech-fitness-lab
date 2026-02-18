@@ -1,69 +1,56 @@
-require("dotenv").config();
 const express = require("express");
 const bodyParser = require("body-parser");
-const cors = require("cors");
-const axios = require("axios");
+const path = require("path");
 
 const app = express();
-app.use(cors());
+const PORT = process.env.PORT || 10000;
+
 app.use(bodyParser.json());
 app.use(express.static("public"));
 
-const PORT = process.env.PORT || 10000;
+let members = [];
 
-// HOME ROUTE
-app.get("/", (req, res) => {
-  res.send("Digitech Fitness Lab Server Running ✅");
+// Register Member
+app.post("/register", (req, res) => {
+  const { name, phone, clientId } = req.body;
+
+  const member = {
+    name,
+    phone,
+    clientId,
+    status: "inactive",
+    expiry: null,
+    lastPayment: null
+  };
+
+  members.push(member);
+  res.json({ message: "Member Registered Successfully" });
 });
 
-// MEMBER REGISTRATION API
-app.post("/register-member", (req, res) => {
-  const { name, phone, plan } = req.body;
+// Record Payment
+app.post("/pay", (req, res) => {
+  const { clientId, amount } = req.body;
 
-  if (!name || !phone || !plan) {
-    return res.status(400).json({ message: "All fields required" });
+  const member = members.find(m => m.clientId === clientId);
+
+  if (!member) {
+    return res.json({ message: "Member not found" });
   }
 
-  console.log("New Member:", name, phone, plan);
+  const today = new Date();
+  const expiryDate = new Date();
+  expiryDate.setDate(today.getDate() + 30);
 
-  res.json({
-    success: true,
-    message: "Member Registered Successfully"
-  });
+  member.status = "active";
+  member.lastPayment = today;
+  member.expiry = expiryDate;
+
+  res.json({ message: "Payment Recorded Successfully" });
 });
 
-// M-PESA STK PUSH
-app.post("/stkpush", async (req, res) => {
-  const { phone, amount } = req.body;
-
-  try {
-    const response = await axios.post(
-      "https://sandbox.safaricom.co.ke/mpesa/stkpush/v1/processrequest",
-      {
-        BusinessShortCode: process.env.SHORTCODE,
-        Password: process.env.PASSKEY,
-        Timestamp: "20250101010101",
-        TransactionType: "CustomerPayBillOnline",
-        Amount: amount,
-        PartyA: phone,
-        PartyB: process.env.SHORTCODE,
-        PhoneNumber: phone,
-        CallBackURL: process.env.CALLBACK_URL,
-        AccountReference: "DigitechFitness",
-        TransactionDesc: "Gym Payment"
-      },
-      {
-        headers: {
-          Authorization: "Bearer " + process.env.ACCESS_TOKEN
-        }
-      }
-    );
-
-    res.json(response.data);
-  } catch (error) {
-    console.log(error.response?.data || error.message);
-    res.status(500).json({ error: "STK Push Failed" });
-  }
+// Get All Members
+app.get("/members", (req, res) => {
+  res.json(members);
 });
 
 app.listen(PORT, () => {
