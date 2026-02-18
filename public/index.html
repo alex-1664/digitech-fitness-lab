@@ -1,32 +1,69 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Digitech Fitness Lab - Ishiara Branch</title>
-  <link rel="stylesheet" href="style.css">
+  <title>Digitech Fitness Lab</title>
 </head>
 <body>
 
-<h1>DIGITECH FITNESS LAB</h1>
-<h3>Ishiara Branch</h3>
+<h1>Digitech Fitness Lab - Ishiara Branch</h1>
 
-<div class="card">
-  <h2>Register Member</h2>
-  <input type="text" id="name" placeholder="Full Name">
-  <input type="text" id="phone" placeholder="Phone Number">
-  <select id="plan">
-    <option value="Daily">Daily - 100</option>
-    <option value="Monthly">Monthly - 2000</option>
-  </select>
-  <button onclick="register()">Register</button>
-</div>
+<h2>Register Member</h2>
+<input type="text" id="name" placeholder="Name">
+<input type="text" id="phone" placeholder="Phone">
+<input type="text" id="clientId" placeholder="Client ID">
+<button onclick="register()">Register</button>
 
-<div class="card">
-  <h2>Pay with M-Pesa</h2>
-  <input type="text" id="mpesaPhone" placeholder="Phone Number">
-  <input type="number" id="amount" placeholder="Amount">
-  <button onclick="pay()">Pay Now</button>
-</div>
+<h2>Record Payment</h2>
+<input type="text" id="payClientId" placeholder="Client ID">
+<input type="number" id="amount" placeholder="Amount">
+<button onclick="pay()">Pay</button>
 
-<script src="script.js"></script>
+<h2>Members List</h2>
+<button onclick="loadMembers()">Load Members</button>
+<ul id="membersList"></ul>
+
+<script>
+async function register() {
+  const name = document.getElementById("name").value;
+  const phone = document.getElementById("phone").value;
+  const clientId = document.getElementById("clientId").value;
+
+  await fetch("/register", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ name, phone, clientId })
+  });
+
+  alert("Member Registered");
+}
+
+async function pay() {
+  const clientId = document.getElementById("payClientId").value;
+  const amount = document.getElementById("amount").value;
+
+  await fetch("/pay", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ clientId, amount })
+  });
+
+  alert("Payment Recorded");
+}
+
+async function loadMembers() {
+  const res = await fetch("/members");
+  const data = await res.json();
+
+  const list = document.getElementById("membersList");
+  list.innerHTML = "";
+
+  data.forEach(member => {
+    const li = document.createElement("li");
+    li.textContent = `${member.name} - ${member.status} - Expiry: ${member.expiry || "N/A"}`;
+    list.appendChild(li);
+  });
+}
+</script>
+
 </body>
 </html>
